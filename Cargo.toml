@@ -6,7 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.95"
 chrono = "0.4.35"
 clap = { version = "4.5.3", features = ["derive"] }
-homedir = "0.2.1"
+expanduser = "1.2.2"
+log = "0.4.22"
 rusqlite = "0.31.0"
