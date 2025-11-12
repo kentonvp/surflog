@@ -5,7 +5,7 @@ edition = "2024"
 
 [[bin]]
 name = "cli"
-path = "src/main-cli.rs"
+path = "src/main.rs"
 
 [dependencies]
 anyhow = "1.0.95"

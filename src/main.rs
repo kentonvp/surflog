@@ -9,6 +9,7 @@
    \|_________|                                                                                       \|_________|
 */
 
+mod buddy;
 mod cli;
 mod database;
 mod input;
