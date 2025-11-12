@@ -6,6 +6,10 @@ use log::{debug, error};
 use crate::database::{Database, database_path, models::session};
 use crate::input;
 
+const GREEN: &'static str = "\x1b[32m";
+const YELLOW: &'static str = "\x1b[33m";
+const RESET: &'static str = "\x1b[0m";
+
 /// A simple command-line tool to track surf sessions.
 #[derive(Parser)]
 #[command(
@@ -66,11 +70,11 @@ pub(crate) fn run() -> Result<()> {
             // Location -------------------------------------------------------
             let previous = session::get_last_location(&db);
             loop {
-                let mut prompt = String::from("Where");
+                let mut prompt = format!("{GREEN}Where");
                 if let Some(loc) = &previous {
-                    prompt.push_str(&format!(" (previous: {})", loc));
+                    prompt.push_str(&format!("{YELLOW} (previous: {loc})"));
                 }
-                prompt.push_str(": ");
+                prompt.push_str(&format!("{GREEN}: {RESET}"));
 
                 let location = input::get_input(&prompt);
                 if location.trim().is_empty()
@@ -88,7 +92,9 @@ pub(crate) fn run() -> Result<()> {
 
             // Datetime -------------------------------------------------------
             loop {
-                let date = input::get_input("When (YYYY-MM-DD HH:MM): ");
+                let date = input::get_input(&format!(
+                    "{GREEN}When{YELLOW} (YYYY-MM-DD HH:MM){GREEN}:{RESET} "
+                ));
                 if let Ok(date) =
                     NaiveDateTime::parse_from_str(&date, "%Y-%m-%d %H:%M")
                 {
@@ -103,7 +109,9 @@ pub(crate) fn run() -> Result<()> {
 
             // Duration -------------------------------------------------------
             loop {
-                let duration = input::get_input("Duration (minutes): ");
+                let duration = input::get_input(&format!(
+                    "{GREEN}Duration {YELLOW}(minutes){GREEN}: {RESET}"
+                ));
                 if let Ok(duration) = duration.trim().parse::<u16>() {
                     builder.duration(duration);
                     break;
@@ -114,7 +122,9 @@ pub(crate) fn run() -> Result<()> {
 
             // Rating ---------------------------------------------------------
             loop {
-                let rating = input::get_input("Rating (1-10): ");
+                let rating = input::get_input(&format!(
+                    "{GREEN}Rating {YELLOW}(1-10){GREEN}: {RESET}"
+                ));
                 if let Ok(rating) = rating.trim().parse::<u8>() {
                     if (1..=10).contains(&rating) {
                         builder.rating(rating);
@@ -129,8 +139,9 @@ pub(crate) fn run() -> Result<()> {
 
             // Wave height ----------------------------------------------------
             loop {
-                let wave_height =
-                    input::get_input("Approx wave height (feet): ");
+                let wave_height = input::get_input(&format!(
+                    "{GREEN}Approx wave height {YELLOW}(feet){GREEN}: {RESET}"
+                ));
                 if let Ok(wave_height) = wave_height.trim().parse::<f32>() {
                     builder.wave_height(wave_height);
                     break;
