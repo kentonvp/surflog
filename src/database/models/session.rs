@@ -6,12 +6,12 @@ use log::debug;
 #[derive(Debug)]
 /// Struct representing a surf session.
 pub(crate) struct Session {
-    pub id: Option<u32>,
-    pub location: String,
-    pub date: NaiveDateTime,
-    pub duration: u16,
-    pub rating: u8,
-    pub wave_height: f32,
+    pub(crate) id: Option<u32>,
+    pub(crate) location: String,
+    pub(crate) date: NaiveDateTime,
+    pub(crate) duration: u16,
+    pub(crate) rating: u8,
+    pub(crate) wave_height: f32,
 }
 
 /// SQL statement to create the sessions table if it does not exist.

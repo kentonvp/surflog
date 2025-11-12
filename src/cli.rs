@@ -1,7 +1,7 @@
 use anyhow::Result;
 use chrono::NaiveDateTime;
 use clap::{Args, Parser, Subcommand};
-use log::{debug, error, info, warn};
+use log::{debug, error};
 
 use crate::database::{Database, database_path, models::session};
 use crate::input;
@@ -14,13 +14,13 @@ use crate::input;
     about="CLI tool to track surf sessions",
     long_about = None
 )]
-pub struct Cli {
+pub(crate) struct Cli {
     #[clap(subcommand)]
-    pub cmd: Command,
+    pub(crate) cmd: Command,
 }
 
 #[derive(Subcommand)]
-pub enum Command {
+pub(crate) enum Command {
     /// Add a new surf session
     Add(Add),
 
@@ -35,25 +35,25 @@ pub enum Command {
 }
 
 #[derive(Args, Debug)]
-pub struct Delete {
+pub(crate) struct Delete {
     /// `id` of the surf session to delete
-    pub id: u64,
+    pub(crate) id: u64,
 }
 
 #[derive(Args, Debug)]
-pub struct List {
+pub(crate) struct List {
     /// Optional location of surf sessions to list
-    pub location: Option<String>,
+    pub(crate) location: Option<String>,
 }
 
 #[derive(Args, Debug)]
-pub struct Add;
+pub(crate) struct Add;
 
-pub fn get_args() -> Cli {
+pub(crate) fn get_args() -> Cli {
     Cli::parse()
 }
 
-pub fn run() -> Result<()> {
+pub(crate) fn run() -> Result<()> {
     let args = get_args();
 
     let db = Database::new(&database_path()?);
@@ -73,8 +73,10 @@ pub fn run() -> Result<()> {
                 prompt.push_str(": ");
 
                 let location = input::get_input(&prompt);
-                if location.trim().is_empty() && previous.is_some() {
-                    builder.location(previous.unwrap());
+                if location.trim().is_empty()
+                    && let Some(default) = previous
+                {
+                    builder.location(default);
                     break;
                 } else if !location.trim().is_empty() {
                     builder.location(location);
