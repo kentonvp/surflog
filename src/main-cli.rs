@@ -11,13 +11,11 @@
 
 mod cli;
 mod database;
+mod input;
 
-use anyhow::Result;
-use log::debug;
-
-fn main() -> Result<()> {
+fn main() -> anyhow::Result<()> {
     env_logger::init();
-    debug!("Starting Surflog CLI application");
+    log::debug!("Starting Surflog CLI application");
 
     cli::run()
 }

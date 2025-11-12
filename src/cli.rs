@@ -1,9 +1,10 @@
 use anyhow::Result;
 use chrono::NaiveDateTime;
 use clap::{Args, Parser, Subcommand};
-use log::debug;
+use log::{debug, error, info, warn};
 
-use super::database::{database_path, Database, Session};
+use crate::database::{Database, database_path, models::session};
+use crate::input;
 
 /// A simple command-line tool to track surf sessions.
 #[derive(Parser)]
@@ -46,27 +47,7 @@ pub struct List {
 }
 
 #[derive(Args, Debug)]
-pub struct Add {
-    /// The surf spot
-    #[arg(required = true)]
-    pub location: String,
-
-    /// The date and time of the surf session in format "YYYY-mm-dd HH:MM"
-    #[arg(required = true)]
-    pub datetime: String,
-
-    /// The time surfed in minutes
-    #[arg(required = true)]
-    pub duration: u16,
-
-    /// The rating for the surf session out of 10
-    #[arg(required = true)]
-    pub rating: u8,
-
-    /// The wave height in feet
-    #[arg(required = true)]
-    pub wave_height: f32,
-}
+pub struct Add;
 
 pub fn get_args() -> Cli {
     Cli::parse()
@@ -78,38 +59,106 @@ pub fn run() -> Result<()> {
     let db = Database::new(&database_path()?);
 
     match args.cmd {
-        Command::Add(add_opts) => {
-            debug!("Adding a new session...");
-            let session = Session {
-                id: None,
-                location: add_opts.location,
-                date: NaiveDateTime::parse_from_str(
-                    &add_opts.datetime,
-                    "%Y-%m-%d %H:%M",
-                )
-                .unwrap(),
-                duration: add_opts.duration,
-                rating: add_opts.rating,
-                wave_height: add_opts.wave_height,
-            };
+        Command::Add(_opts) => {
+            debug!("Building a new session...");
+            let mut builder = session::SessionBuilder::builder();
 
-            // Insert session
-            let _ = db.insert_session(&session);
+            // Location -------------------------------------------------------
+            let previous = session::get_last_location(&db);
+            loop {
+                let mut prompt = String::from("Where");
+                if let Some(loc) = &previous {
+                    prompt.push_str(&format!(" (previous: {})", loc));
+                }
+                prompt.push_str(": ");
+
+                let location = input::get_input(&prompt);
+                if location.trim().is_empty() && previous.is_some() {
+                    builder.location(previous.unwrap());
+                    break;
+                } else if !location.trim().is_empty() {
+                    builder.location(location);
+                    break;
+                } else {
+                    println!("Location cannot be empty.");
+                }
+            }
+
+            // Datetime -------------------------------------------------------
+            loop {
+                let date = input::get_input("When (YYYY-MM-DD HH:MM): ");
+                if let Ok(date) =
+                    NaiveDateTime::parse_from_str(&date, "%Y-%m-%d %H:%M")
+                {
+                    builder.date(date);
+                    break;
+                } else {
+                    println!(
+                        "Invalid date format. Please use 'YYYY-MM-DD HH:MM'."
+                    );
+                }
+            }
+
+            // Duration -------------------------------------------------------
+            loop {
+                let duration = input::get_input("Duration (minutes): ");
+                if let Ok(duration) = duration.trim().parse::<u16>() {
+                    builder.duration(duration);
+                    break;
+                } else {
+                    println!("Please enter a valid number for duration.");
+                }
+            }
+
+            // Rating ---------------------------------------------------------
+            loop {
+                let rating = input::get_input("Rating (1-10): ");
+                if let Ok(rating) = rating.trim().parse::<u8>() {
+                    if (1..=10).contains(&rating) {
+                        builder.rating(rating);
+                        break;
+                    } else {
+                        println!("Rating must be between 1 and 10.");
+                    }
+                } else {
+                    println!("Please enter a valid number for rating.");
+                }
+            }
+
+            // Wave height ----------------------------------------------------
+            loop {
+                let wave_height =
+                    input::get_input("Approx wave height (feet): ");
+                if let Ok(wave_height) = wave_height.trim().parse::<f32>() {
+                    builder.wave_height(wave_height);
+                    break;
+                } else {
+                    println!("Please enter a valid number for wave height.");
+                }
+            }
+
+            // Build and write session to database
+            let session = builder.build().expect("Failed to build session");
+            debug!("New session: {:?}", session);
+
+            // Insert session and log if error
+            if let Err(e) = session::insert(&db, &session) {
+                error!("Failed to insert session: {}", e);
+            }
         }
         Command::Delete(del_opts) => {
             debug!("Delete a session...");
-            db.delete_session(del_opts.id);
+            session::delete(&db, del_opts.id);
         }
         Command::List(list_opts) => {
             debug!("Listing all sessions...");
             // Display all sessions
             let sessions = match list_opts.location {
-                Some(loc) => db.get_sessions_by_location(&loc),
-                None => db.get_sessions(),
+                Some(loc) => session::get_by_location(&db, &loc),
+                None => session::get_all(&db),
             };
 
             if let Ok(sessions) = sessions {
-                //println!("{:-<80}", "");
                 println!(
                     "|{:^4}|{:^20}|{:^18}|{:^10}|{:^8}|{:^13}|",
                     "Id",
@@ -134,7 +183,6 @@ pub fn run() -> Result<()> {
                         format!("{}", session.wave_height),
                     );
                 }
-                //println!("{:-<80}", "");
             }
         }
         Command::Config => {
