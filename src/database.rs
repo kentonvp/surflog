@@ -1,5 +1,3 @@
-use crate::database::models::session;
-
 pub(crate) mod models;
 
 /// Get the path to the database file: respects the `XDG_DATA_HOME` environment
@@ -21,9 +19,6 @@ impl Database {
     pub(crate) fn new(db_path: &str) -> Database {
         let conn = rusqlite::Connection::open(db_path)
             .expect("failed to open database");
-
-        conn.execute(session::CREATE_TABLE_STR, ())
-            .expect("failed to create sessions table");
 
         Database { conn }
     }

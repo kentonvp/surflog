@@ -14,18 +14,6 @@ pub(crate) struct Session {
     pub(crate) wave_height: f32,
 }
 
-/// SQL statement to create the sessions table if it does not exist.
-pub(crate) const CREATE_TABLE_STR: &str = {
-    r#"CREATE TABLE IF NOT EXISTS sessions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    location TEXT NOT NULL,
-    datetime DATETIME NOT NULL,
-    duration INTEGER NOT NULL,
-    rating INTEGER NOT NULL,
-    wave_height REAL NOT NULL
-)"#
-};
-
 /// Builder pattern
 pub(crate) struct SessionBuilder {
     location: Option<String>,
